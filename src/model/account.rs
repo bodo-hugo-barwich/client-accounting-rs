@@ -1,7 +1,7 @@
 
 use serde::{Serialize, Deserialize};
 
-use csv::{ReaderBuilder, Trim};
+use csv::{WriterBuilder, ReaderBuilder, Trim};
 use std::collections::HashMap;
 
 //#[macro_use]
@@ -82,7 +82,7 @@ impl AccountFactory {
 
             factory.lstaccounts.insert(record.client, record);
           }
-          , Err(e) => eprintln!("{}", &format!("Account CSV Parse Error: '{:?}'", e))
+          , Err(e) => eprintln!("Account CSV Parse Error: '{:?}'", e)
         }
     }
 
@@ -106,11 +106,40 @@ impl AccountFactory {
 
             icount += 1;
           }
-          , Err(e) => eprintln!("{}", &format!("Account CSV Parse Error: '{:?}'", e))
+          , Err(e) => eprintln!("Account CSV Parse Error: '{:?}'", e)
         }
     }
 
     icount
+  }
+
+  pub fn export_csv(&self) -> String {
+    let mut wtr = WriterBuilder::new().from_writer(vec![]);
+
+    for acc in self.lstaccounts.iter() {
+      match wtr.serialize(acc.1) {
+        Ok(_) => {}
+        Err(e) => eprintln!("Account CSV Export Error: '{:?}'", e)
+      }
+    }
+
+    let data = match wtr.into_inner() {
+      Ok(iwtr) => {
+        match String::from_utf8(iwtr) {
+          Ok(s) => s
+          , Err(e) => {
+            eprintln!("Account CSV Export Error: '{:?}'", e);
+            String::new()
+          }
+        }
+      }
+      , Err(e) => {
+        eprintln!("Account CSV Export Error: '{:?}'", e);
+        String::new()
+      }
+    };
+
+    data
   }
 
   pub fn create_account(&mut self, client_id: &u16) -> Option<&mut Account> {

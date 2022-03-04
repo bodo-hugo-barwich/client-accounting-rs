@@ -182,9 +182,19 @@ impl RunClientAccounting {
     } //if ! self._stxfile.is_empty()
   }
 
+  fn export_accounts(&self) -> i32 {
+    let data = self._importer.export_accounts_str();
+
+    print!("{}", &data);
+
+    self._ierr
+  }
+
   pub fn do_run(&mut self) -> i32 {
 
     self.import_from_file();
+
+    self.export_accounts();
 
     self._ierr
   }

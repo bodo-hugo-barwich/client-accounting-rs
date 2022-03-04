@@ -152,8 +152,7 @@ impl MovementImporter {
   }
 
   pub fn export_accounts_str(&self) -> String {
-
-
+    self._lstaccfact.export_csv()
   }
 
   /*----------------------------------------------------------------------------
