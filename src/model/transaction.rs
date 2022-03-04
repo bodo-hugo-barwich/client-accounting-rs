@@ -43,7 +43,7 @@ impl Clone for Transaction {
 
 
 //==============================================================================
-// Structure Transaction Declaration
+// Structure Movement Declaration
 
 
 #[derive(Debug, Deserialize)]
@@ -94,7 +94,38 @@ impl Movement {
 
 
 //==============================================================================
-// Structure AccountFactory Declaration
+// Structure MovementImportError Declaration
+
+
+#[derive(Debug)]
+pub struct MovementImportError {
+  pub ok_count: u32,
+  pub lines: Vec<u32>,
+  pub message: String,
+  pub code: i8
+}
+
+
+
+
+//==============================================================================
+// Structure TransactionFactory Implementation
+
+
+impl MovementImportError {
+  /*----------------------------------------------------------------------------
+   * Constructors
+   */
+
+  pub fn new(ok_count: u32, error_lines: Vec<u32>, error_message: String, error_code: i8) -> MovementImportError {
+    MovementImportError { ok_count: ok_count, lines: error_lines, message: error_message, code: error_code }
+  }
+
+}
+
+
+//==============================================================================
+// Structure TransactionFactory Declaration
 
 
 #[derive(Debug)]
@@ -131,47 +162,22 @@ impl TransactionFactory {
   pub fn new() -> TransactionFactory  {
     let factory = TransactionFactory { vmovements: Vec::new(), lsttransactions: HashMap::new() };
 
-    //accounting._init();
-
-
-    //Return the New AccountFactory Object
+    //Return the New TransactionFactory Object
     factory
   }
 
-  pub fn from_str(stransactions_csv: &str) -> TransactionFactory {
+  pub fn from_str(smovements_csv: &str, bdebug: bool, bquiet: bool) -> TransactionFactory {
     let mut factory = TransactionFactory { vmovements: Vec::new(), lsttransactions: HashMap::new() };
-    let mut rdr = ReaderBuilder::new()
-        .has_headers(false)
-        .trim(Trim::All)
-        .from_reader(stransactions_csv.as_bytes());
-    let mut iter = rdr.records();
 
-    if let Some(result) = iter.next() {
-        match result {
-          Ok(r) => {
-            eprintln!("{}", &format!("Movement CSV Header: '{:?}'", r));
-          }
-          , Err(e) => eprintln!("{}", &format!("Movement CSV Parse Error: '{:?}'", e))
+    match factory.import_csv_str(smovements_csv, bdebug, bquiet) {
+      Ok(_) => {}
+      , Err(e) => {
+        if !bquiet {
+          eprintln!("Movement CSV Import Error: Import Movements failed");
+          eprintln!("Movement Error: '{:?}'", e);
         }
-    }
-
-    let mut iter = rdr.deserialize();
-
-    while let Some(result) = iter.next() {
-        match result {
-          Ok(r) => {
-            let mvrecord: Movement = r;
-            let otx = mvrecord.build_transaction();
-
-            factory.vmovements.push(mvrecord);
-
-            if let Some(txrec) = otx {
-              factory.lsttransactions.insert(txrec.tx, txrec);
-            }
-          }
-          , Err(e) => eprintln!("{}", &format!("Movement CSV Parse Error: '{:?}'", e))
-        }
-    }
+      }
+    } //match factory.import_csv_str(smovements_csv, bdebug, bquiet)
 
     factory
   }
@@ -183,13 +189,18 @@ impl TransactionFactory {
   #Administration Methods
   */
 
-  pub fn import_csv_bytes(&mut self, vmovements_csv: &[u8]) -> u32 {
+  pub fn import_csv_bytes(&mut self, vmovements_csv: &[u8], bdebug: bool, bquiet: bool) -> Result<u32, MovementImportError> {
     let mut rdr = ReaderBuilder::new()
         .has_headers(false)
         .trim(Trim::All)
         .from_reader(vmovements_csv);
     let mut iter = rdr.deserialize();
+    let mut serr = String::new();
+    let mut verrlines: Vec<u32> = Vec::new();
+    let mut icsvline = 1;
     let mut icount = 0;
+    let mut ierr = 0;
+
 
     while let Some(result) = iter.next() {
         match result {
@@ -205,18 +216,34 @@ impl TransactionFactory {
 
             icount += 1;
           }
-          , Err(e) => eprintln!("{}", &format!("Movement CSV Parse Error: '{:?}'", e))
-        }
+          , Err(e) => {
+            serr.push_str(&format!("Parse Error: '{:?}'", e));
+            verrlines.push(icsvline);
+            ierr = 1;
+          }
+        } //match result
+
+        //Keep track of the Input Lines
+        icsvline += 1;
     } //while let Some(result) = iter.next()
 
-    eprintln!("Transactions CSV Import Count: '{}'", icount);
+    if bdebug
+      && ! bquiet {
+      eprintln!("Transactions CSV Import Count: '{}'", icount);
+    }
 
-    icount
+    if ierr == 0 {
+      Ok(icount)
+    }
+    else
+    {
+      Err(MovementImportError::new(icount, verrlines, serr, ierr))
+    }
   }
 
 
-  pub fn import_csv_str(&mut self, saccounts_csv: &str) -> u32 {
-    self.import_csv_bytes(saccounts_csv.as_bytes())
+  pub fn import_csv_str(&mut self, smovements_csv: &str, bdebug: bool, bquiet: bool) -> Result<u32, MovementImportError> {
+    self.import_csv_bytes(smovements_csv.as_bytes(), bdebug, bquiet)
   }
 
   pub fn add_transaction(&mut self, transaction: Transaction) -> Option<&mut Transaction> {

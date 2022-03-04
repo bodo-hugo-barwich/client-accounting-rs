@@ -96,7 +96,7 @@ impl RunClientAccounting {
       match &mut oflrs {
         Ok(fl) => {
           //let mut buf_reader = BufReader::new(fl);
-          let ichunksize = 32; // 32768;
+          let ichunksize = 64; // 32768;
           let mut vchunk = vec![0; ichunksize];
           let mut irdcnt = ichunksize;
 

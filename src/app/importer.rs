@@ -9,8 +9,8 @@ use super::super::model::transaction::TransactionFactory;
 
 #[derive(Debug)]
 pub struct MovementImporter {
-  _lstaccfact: AccountFactory
-  , _lsttxfact: TransactionFactory
+  _accfact: AccountFactory
+  , _txfact: TransactionFactory
   , _bquiet: bool
   , _bdebug: bool
   , _ierr: i32
@@ -44,8 +44,8 @@ impl MovementImporter {
 
 
   pub fn new() -> MovementImporter {
-    MovementImporter { _lstaccfact: AccountFactory::new(),
-    _lsttxfact: TransactionFactory::new(),
+    MovementImporter { _accfact: AccountFactory::new(),
+    _txfact: TransactionFactory::new(),
      _bquiet: false, _bdebug: false, _ierr: 0 }
   }
 
@@ -65,42 +65,49 @@ impl MovementImporter {
   }
 
   fn process_movements(&mut self) {
-    for mut mvrec in &mut self._lsttxfact.vmovements {
-      let mut oacc = self._lstaccfact.lstaccounts.get_mut(&mvrec.client);
-      let otxrec = self._lsttxfact.lsttransactions.get(&mvrec.tx);
+    for mut mvrec in &mut self._txfact.vmovements {
+      let mut oacc = self._accfact.lstaccounts.get_mut(&mvrec.client);
+      let otxrec = self._txfact.lsttransactions.get(&mvrec.tx);
 
       if oacc.is_none() {
-        oacc = self._lstaccfact.create_account(&mvrec.client);
+        oacc = self._accfact.create_account(&mvrec.client);
       }
 
       match &mut oacc {
         Some(acc) => {
-          acc.process_movement(&mut mvrec, otxrec);
+          acc.process_movement(&mut mvrec, otxrec, self._bdebug, self._bquiet);
         }
         None => {
           eprintln!("Movement Processing Error: Add Account failed");
         }
       } //match &mut oacc
-    } //for mvrec in &self._lsttxfact.vmovements
+    } //for mvrec in &self._txfact.vmovements
 
     //Clear processed Movements
-    self._lsttxfact.vmovements.clear();
+    self._txfact.vmovements.clear();
   }
 
   pub fn import_movements_bytes(&mut self, vmovements_bytes: &[u8]) -> i32 {
 
-    let itxcount = self._lsttxfact.import_csv_bytes(vmovements_bytes);
+    let itxcount = match self._txfact.import_csv_bytes(vmovements_bytes
+      , self._bdebug, self._bquiet) {
+      Ok(icnt) => icnt
+      , Err(e) => {
+        if ! self._bquiet {
+          eprintln!("Movement CSV Import Error: Import Movements failed with [{}]", e.code);
+          eprintln!("Movement Error: '{:?}'", e);
+        }
 
-    if itxcount == 0 {
-        eprintln!("Transactions CSV Import Error: Import Transactions failed");
+        self._ierr = e.code as i32;
 
-        self._ierr = 1;
-    }
+        e.ok_count
+      }
+    };
 
 
 
 /*
-    match &mut self._lstaccfact.create_account(&1) {
+    match &mut self._accfact.create_account(&1) {
       Some(acc) => {
         acc.available = 1.5;
         acc.held = 0.0;
@@ -113,7 +120,7 @@ impl MovementImporter {
       }
     }
 
-    if self._lstaccfact.import_csv(&"2,2.0,0.0,2.0,false\n3,3.1,0.0,3.1,false\n4,4.1,0.0,4.1,false\n") == 0 {
+    if self._accfact.import_csv(&"2,2.0,0.0,2.0,false\n3,3.1,0.0,3.1,false\n4,4.1,0.0,4.1,false\n") == 0 {
         eprintln!("Account CSV Import Error: Import Accounts failed");
 
         self._ierr = 1;
@@ -121,11 +128,11 @@ impl MovementImporter {
 */
     if self._bdebug
       && ! self._bquiet {
-      eprintln!("accs fct dmp 1:\n{:?}", self._lstaccfact);
+      eprintln!("accs fct dmp 1:\n{:?}", self._accfact);
     }
 
 /*
-    let itxcount = self._lsttxfact.import_csv_str(&"type,client,tx, amount\ndeposit,1,1,1.0\ndeposit,2,2,2.0\ndeposit,1,3,2.0\nwithdrawal,1,4,1.5\nwithdrawal,2,5,3.0\n");
+    let itxcount = self._txfact.import_csv_str(&"type,client,tx, amount\ndeposit,1,1,1.0\ndeposit,2,2,2.0\ndeposit,1,3,2.0\nwithdrawal,1,4,1.5\nwithdrawal,2,5,3.0\n");
 
     if itxcount == 0 {
         eprintln!("Transactions CSV Import Error: Import Transactions failed");
@@ -135,25 +142,27 @@ impl MovementImporter {
 */
     if self._bdebug
       && ! self._bquiet {
-      eprintln!("txs fct dmp 1:\n{:?}", self._lsttxfact);
+      eprintln!("txs fct dmp 1:\n{:?}", self._txfact);
     }
 
-    if self._lsttxfact.vmovements.len() > 0 {
+    if itxcount > 0 {
       self.process_movements();
     }
 
     if self._bdebug
       && ! self._bquiet {
-      eprintln!("txs fct dmp 2:\n{:?}", self._lsttxfact);
-      eprintln!("accs fct dmp 2:\n{:?}", self._lstaccfact);
+      eprintln!("txs fct dmp 2:\n{:?}", self._txfact);
+      eprintln!("accs fct dmp 2:\n{:?}", self._accfact);
     }
 
     self._ierr
   }
 
   pub fn export_accounts_str(&self) -> String {
-    self._lstaccfact.export_csv()
+    self._accfact.export_csv()
   }
+
+
 
   /*----------------------------------------------------------------------------
    * Consultation Methods
