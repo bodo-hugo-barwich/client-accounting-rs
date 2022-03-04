@@ -36,8 +36,13 @@ fn parse_parameters(application: &mut RunClientAccounting) {
 
       match sarg {
         "i" => application.set_import(true)
-        , "q" => application.set_quiet(true)
-        , "d" | "v" => application.set_debug(true)
+        , "v" => application.set_quiet(false)
+        , "d" => {
+          //Reenable Notices
+          application.set_quiet(false);
+          //Enable Debug Output
+          application.set_debug(true);
+        }
         , _ => {}
       } //match sarg
     }
@@ -53,7 +58,13 @@ fn parse_parameters(application: &mut RunClientAccounting) {
 
 
 fn run_app() -> i32 {
+  //-------------------------------------
+  //Create the Application Object
+
   let mut accounting = RunClientAccounting::new();
+
+  //Suppress Notices by default
+  accounting.set_quiet(true);
 
   parse_parameters(&mut accounting);
 
@@ -62,9 +73,23 @@ fn run_app() -> i32 {
     eprintln!("app dmp 1:\n{:?}", accounting);
   }
 
+  //Execute the Application
   accounting.do_run();
 
-  accounting.get_error_code()
+  let ierr = accounting.get_error_code();
+
+
+  if ! accounting.is_quiet() {
+    if ierr == 0 {
+      eprintln!("Application finished with [{}]", ierr);
+    }
+    else
+    {
+      eprintln!("Application failed with [{}]", ierr);
+    }
+  }
+
+  ierr
 }
 
 fn main() {
@@ -74,8 +99,6 @@ fn main() {
   match ierr {
     0 => {}
     _ => {
-      eprintln!("Application failed with [{}]", ierr);
-
       exit(ierr);
     }
   }
