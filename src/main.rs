@@ -1,5 +1,6 @@
 
 mod app;
+mod model;
 
 use app::RunClientAccounting;
 
@@ -15,17 +16,15 @@ fn parse_parameters(application: &mut RunClientAccounting) {
   //-------------------------------------
   //Read the Script Parameters
 
-  //let mut oapppath = None;
-
   let mut sarg;
   let mut iargidx = 0;
 
 
-  eprintln!("args: ");
+  //eprintln!("args: ");
 
   // Prints each argument on a separate line
   for argument in std::env::args() {
-    eprintln!("{}", &format!("[{}] '{}', ", iargidx, argument.as_str()));
+    //eprintln!("[{}] '{}'", iargidx, argument.as_str());
 
     if argument.starts_with("--") {  //Parameter with Double Dash
       sarg = argument.split_at(2).1;
@@ -49,37 +48,7 @@ fn parse_parameters(application: &mut RunClientAccounting) {
     iargidx += 1;
   } //for argument in std::env::args()
 
-  eprintln!("args end.");
-
-/*
-  match & oapppath {
-    Some(p) => {
-      if p.is_file() {
-        if let Some(flnm) = p.as_path().file_name() {
-          if let Some(sflnm) = flnm.to_str() {
-            //Set the File Name as Module Name
-            application.set_module_name(sflnm);
-          }
-        }
-
-        if let Some(fldir) = p.as_path().parent() {
-          //Set the File Directory as Working Directory
-          application.set_working_directory(fldir);
-        }
-      } //if p.is_file()
-    } //Some(p)
-    , None => {}
-  }
-
-  if application.is_debug()
-    && ! application.is_quiet() {
-    println!("{}", sscrprms);
-    println!("app path 0: '{:?}'", oapppath);
-    println!("bla path: '{:?}'", path_utils::absolute_path_from_str(&"bla"));
-    println!("md nm 0: '{}'", application.get_module_name());
-    println!("wrk dir: '{}'", application.get_working_directory().to_str().unwrap());
-  }
-*/
+  //eprintln!("args end.");
 }
 
 

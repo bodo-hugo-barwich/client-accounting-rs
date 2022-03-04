@@ -2,10 +2,11 @@
 use std::io::Read;
 use std::fs::File;
 
-mod model;
 
-use model::account::AccountFactory;
-use model::transaction::TransactionFactory;
+mod importer;
+//mod model;
+
+use super::app::importer::MovementImporter;
 
 
 //==============================================================================
@@ -14,9 +15,9 @@ use model::transaction::TransactionFactory;
 
 #[derive(Debug)]
 pub struct RunClientAccounting {
-  _lstaccfact: AccountFactory
-  , _lsttxfact: TransactionFactory
+  _importer: MovementImporter
   , _stxfile: String
+  , _vinput: Vec<u8>
   , _bimport: bool
   , _bquiet: bool
   , _bdebug: bool
@@ -49,10 +50,9 @@ impl RunClientAccounting {
 
 
   pub fn new() -> RunClientAccounting {
-    let accounting = RunClientAccounting { _lstaccfact: AccountFactory::new(),
-    _lsttxfact: TransactionFactory::new(),
-      _stxfile: String::new(),
-    _bimport: false, _bquiet: false, _bdebug: false, _ierr: 0 };
+    let accounting = RunClientAccounting { _importer: MovementImporter::new(),
+      _stxfile: String::new(), _vinput: Vec::new(),
+      _bimport: false, _bquiet: false, _bdebug: false, _ierr: 0 };
 
     //accounting._init();
 
@@ -79,34 +79,14 @@ impl RunClientAccounting {
 
   pub fn set_quiet(&mut self, bquiet: bool) {
     self._bquiet = bquiet;
+
+    self._importer.set_quiet(bquiet);
   }
 
   pub fn set_debug(&mut self, bdebug: bool) {
     self._bdebug = bdebug;
-  }
 
-  async fn set_error_code(&mut self, ierrorcode: i32) {
-    self._ierr = ierrorcode;
-  }
-
-  fn process_movements(&mut self) {
-    for mut mvrec in &mut self._lsttxfact.vmovements {
-      let mut oacc = self._lstaccfact.lstaccounts.get_mut(&mvrec.client);
-      let otxrec = self._lsttxfact.lsttransactions.get(&mvrec.tx);
-
-      if oacc.is_none() {
-        oacc = self._lstaccfact.create_account(&mvrec.client);
-      }
-
-      match &mut oacc {
-        Some(acc) => {
-          acc.process_movement(&mut mvrec, otxrec);
-        }
-        None => {
-          eprintln!("Movement Processing Error: Add Account failed");
-        }
-      } //match &mut oacc
-    } //for mvrec in &self._lsttxfact.vmovements
+    self._importer.set_debug(bdebug);
   }
 
   fn import_from_file(&mut self) {
@@ -116,24 +96,75 @@ impl RunClientAccounting {
       match &mut oflrs {
         Ok(fl) => {
           //let mut buf_reader = BufReader::new(fl);
-          let mut vchunk = vec![0; 32768];
+          let ichunksize = 32; // 32768;
+          let mut vchunk = vec![0; ichunksize];
+          let mut irdcnt = ichunksize;
 
-          match fl.read(&mut vchunk) {
-            Ok(icnt) => {
-              let itxcount = self._lsttxfact.import_csv_bytes(&vchunk[..icnt]);
+          while irdcnt > 0
+            && irdcnt == ichunksize {
+            match fl.read(&mut vchunk) {
+              Ok(icnt) => {
+                irdcnt = icnt;
 
-              if itxcount == 0 {
-                  eprintln!("Transactions CSV Import Error: Import Transactions failed");
+                if self._bdebug
+                  && ! self._bquiet {
+                  eprintln!("chunk (sz: '{}'):\n'{:?}'\n", icnt, &vchunk[..icnt]);
+                }
 
-                  self._ierr = 1;
+                let ilnend = match find_last(&vchunk[..icnt], &10) {
+                  Some(ips) => {
+                    if ips == icnt {
+                      ips
+                    }
+                    else {
+                      ips + 1
+                    }
+                  }
+                  , None => icnt
+                };
+                self._vinput.append(&mut vchunk[..ilnend].to_owned());
+
+                if self._bdebug
+                  && ! self._bquiet {
+                  eprintln!("input (sz: '{}'):\n'{:?}'\n", self._vinput.len(), self._vinput);
+                }
+
+                if let Some(_) = find_last(&self._vinput, &10) {
+                  let iimprs = self._importer.import_movements_bytes(&self._vinput);
+
+                  if iimprs != 0 {
+                    self._ierr = iimprs;
+                  }
+
+                  self._vinput.clear();
+                } //if let Some(_) = find_last(&self._vinput, &10)
+
+                if ilnend < icnt {
+                  self._vinput.append(&mut vchunk[ilnend..icnt].to_owned());
+                }
               }
-            }
-            , Err(e) => {
-              eprintln!("Movements CSV Read Error: '{:?}'", e);
+              , Err(e) => {
+                eprintln!("Movements CSV Read Error: '{:?}'", e);
 
-              self._ierr = 1;
+                self._ierr = 1;
+              }
+            } //match fl.read(&mut vchunk)
+          } //while irdcnt > 0 && irdcnt == ichunksize
+
+          if self._vinput.len() > 0 {
+            if self._bdebug
+              && ! self._bquiet {
+              eprintln!("input lst (sz: '{}'):\n'{:?}'\n", self._vinput.len(), self._vinput);
             }
-          } //match fl.read(&mut vchunk)
+
+            let iimprs = self._importer.import_movements_bytes(&self._vinput);
+
+            if iimprs != 0 {
+                self._ierr = iimprs;
+            }
+
+            self._vinput.clear();
+          } //if self._vinput.len() > 0
         }
         , Err(e) => {
           eprintln!("Movements CSV Open Error: '{:?}'", e);
@@ -154,55 +185,6 @@ impl RunClientAccounting {
   pub fn do_run(&mut self) -> i32 {
 
     self.import_from_file();
-
-/*
-    match &mut self._lstaccfact.create_account(&1) {
-      Some(acc) => {
-        acc.available = 1.5;
-        acc.held = 0.0;
-        acc.total = 1.5;
-      }
-      , None => {
-        eprintln!("Account CSV Create Error: Add Account failed");
-
-        self._ierr = 1;
-      }
-    }
-
-    if self._lstaccfact.import_csv(&"2,2.0,0.0,2.0,false\n3,3.1,0.0,3.1,false\n4,4.1,0.0,4.1,false\n") == 0 {
-        eprintln!("Account CSV Import Error: Import Accounts failed");
-
-        self._ierr = 1;
-    }
-*/
-    if self._bdebug
-      && ! self._bquiet {
-      eprintln!("accs fct dmp 1:\n{:?}", self._lstaccfact);
-    }
-
-/*
-    let itxcount = self._lsttxfact.import_csv_str(&"type,client,tx, amount\ndeposit,1,1,1.0\ndeposit,2,2,2.0\ndeposit,1,3,2.0\nwithdrawal,1,4,1.5\nwithdrawal,2,5,3.0\n");
-
-    if itxcount == 0 {
-        eprintln!("Transactions CSV Import Error: Import Transactions failed");
-
-        self._ierr = 1;
-    }
-*/
-    if self._bdebug
-      && ! self._bquiet {
-      eprintln!("txs fct dmp 1:\n{:?}", self._lsttxfact);
-    }
-
-    if self._lsttxfact.vmovements.len() > 0 {
-      self.process_movements();
-    }
-
-    if self._bdebug
-      && ! self._bquiet {
-      eprintln!("txs fct dmp 2:\n{:?}", self._lsttxfact);
-      eprintln!("accs fct dmp 2:\n{:?}", self._lstaccfact);
-    }
 
     self._ierr
   }
@@ -230,3 +212,34 @@ impl RunClientAccounting {
     self._ierr
   }
 }
+
+
+
+//==============================================================================
+// Auxiliary Functions
+
+fn find_last<T: PartialEq>(vvector: &[T], needle: &T) -> Option<usize> {
+  let mut iter = vvector.iter().rev();
+  let mut oitem = iter.next();
+  let mut iitempos = vvector.len() - 1;
+  let mut oipos = None;
+
+  while oitem.is_some() && oipos.is_none() {
+    if let Some(item) = oitem {
+      if item == needle {
+        oipos = Some(iitempos);
+      }
+      else if iitempos > 0
+      {
+        iitempos -= 1;
+      }
+
+      oitem = iter.next();
+    }
+  } //while oitem.is_some() && oipos.is_none()
+
+  //eprintln!("find_last rs: '{:?}'\n", oipos);
+
+  oipos
+}
+

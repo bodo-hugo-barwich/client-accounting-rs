@@ -51,8 +51,7 @@ pub struct Movement {
   pub tx_type: String,
   pub client: u16,
   pub tx: u32,
-  pub amount: Option<f64>,
-  pub status: Option<i8>
+  pub amount: Option<f64>
 }
 
 
@@ -184,25 +183,19 @@ impl TransactionFactory {
   #Administration Methods
   */
 
-  pub fn import_csv_bytes(&mut self, vaccounts_csv: &[u8]) -> u32 {
+  pub fn import_csv_bytes(&mut self, vmovements_csv: &[u8]) -> u32 {
     let mut rdr = ReaderBuilder::new()
         .has_headers(false)
         .trim(Trim::All)
-        .flexible(true)
-        .from_reader(vaccounts_csv);
+        .from_reader(vmovements_csv);
     let mut iter = rdr.deserialize();
     let mut icount = 0;
 
     while let Some(result) = iter.next() {
         match result {
           Ok(r) => {
-            let mut mvrecord: Movement = r;
+            let mvrecord: Movement = r;
             let otx = mvrecord.build_transaction();
-
-
-            if mvrecord.status.is_none() {
-              mvrecord.status = Some(0);
-            }
 
             self.vmovements.push(mvrecord);
 
