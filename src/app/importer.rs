@@ -87,10 +87,10 @@ impl MovementImporter {
     self._txfact.vmovements.clear();
   }
 
-  pub fn import_movements_bytes(&mut self, vmovements_bytes: &[u8]) -> i32 {
+  pub fn import_movements_bytes(&mut self, vmovements_bytes: &[u8], bheaders: bool) -> i32 {
 
     let itxcount = match self._txfact.import_csv_bytes(vmovements_bytes
-      , self._bdebug, self._bquiet) {
+      , bheaders, self._bdebug, self._bquiet) {
       Ok(icnt) => icnt
       , Err(e) => {
         if ! self._bquiet {
@@ -158,8 +158,16 @@ impl MovementImporter {
     self._ierr
   }
 
+  pub fn import_movements_str(&mut self, smovements_str: &str, bheaders: bool) -> i32 {
+    self.import_movements_bytes(smovements_str.as_bytes(), bheaders)
+  }
+
   pub fn export_accounts_str(&self) -> String {
-    self._accfact.export_csv()
+    self._accfact.export_csv(self._bdebug, self._bquiet)
+  }
+
+  pub fn export_transactions_str(&self) -> String {
+    self._txfact.export_transactions_csv(self._bdebug, self._bquiet)
   }
 
 

@@ -1,9 +1,8 @@
 
 
 
-use serde::Deserialize;
-
-use csv::{ReaderBuilder, Trim};
+use serde::{Deserialize, Serialize};
+use csv::{WriterBuilder, ReaderBuilder, Trim};
 use std::vec::Vec;
 use std::collections::HashMap;
 
@@ -13,7 +12,7 @@ use std::collections::HashMap;
 // Structure Transaction Declaration
 
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, Deserialize, Serialize)]
 pub struct Transaction {
   pub tx_type: String,
   pub client: u16,
@@ -48,6 +47,7 @@ impl Clone for Transaction {
 
 #[derive(Debug, Deserialize)]
 pub struct Movement {
+  #[serde(rename = "type")]
   pub tx_type: String,
   pub client: u16,
   pub tx: u32,
@@ -72,7 +72,7 @@ impl Movement {
         match self.amount {
           Some(amnt) => {
             Some(Transaction{tx_type: String::from(self.tx_type.as_str())
-              , client: self.client, tx: self.tx, amount: amnt})
+              , client: self.client, tx: self.tx, amount: (amnt * 10000.0).round() / 10000.0})
           }
           , None => {
             //Invalid Transaction
@@ -166,10 +166,10 @@ impl TransactionFactory {
     factory
   }
 
-  pub fn from_str(smovements_csv: &str, bdebug: bool, bquiet: bool) -> TransactionFactory {
+  pub fn from_str(smovements_csv: &str, bheaders: bool, bdebug: bool, bquiet: bool) -> TransactionFactory {
     let mut factory = TransactionFactory { vmovements: Vec::new(), lsttransactions: HashMap::new() };
 
-    match factory.import_csv_str(smovements_csv, bdebug, bquiet) {
+    match factory.import_csv_str(smovements_csv, bheaders, bdebug, bquiet) {
       Ok(_) => {}
       , Err(e) => {
         if !bquiet {
@@ -189,9 +189,10 @@ impl TransactionFactory {
   #Administration Methods
   */
 
-  pub fn import_csv_bytes(&mut self, vmovements_csv: &[u8], bdebug: bool, bquiet: bool) -> Result<u32, MovementImportError> {
+  pub fn import_csv_bytes(&mut self, vmovements_csv: &[u8]
+    , bheaders: bool, bdebug: bool, bquiet: bool) -> Result<u32, MovementImportError> {
     let mut rdr = ReaderBuilder::new()
-        .has_headers(false)
+        .has_headers(bheaders)
         .trim(Trim::All)
         .from_reader(vmovements_csv);
     let mut iter = rdr.deserialize();
@@ -201,6 +202,10 @@ impl TransactionFactory {
     let mut icount = 0;
     let mut ierr = 0;
 
+    if bheaders {
+      //Header will be skipped
+      icsvline += 1;
+    }
 
     while let Some(result) = iter.next() {
         match result {
@@ -217,7 +222,7 @@ impl TransactionFactory {
             icount += 1;
           }
           , Err(e) => {
-            serr.push_str(&format!("Parse Error: '{:?}'", e));
+            serr.push_str(&format!("Parse Error: '{:?}'; ", e));
             verrlines.push(icsvline);
             ierr = 1;
           }
@@ -241,9 +246,9 @@ impl TransactionFactory {
     }
   }
 
-
-  pub fn import_csv_str(&mut self, smovements_csv: &str, bdebug: bool, bquiet: bool) -> Result<u32, MovementImportError> {
-    self.import_csv_bytes(smovements_csv.as_bytes(), bdebug, bquiet)
+  pub fn import_csv_str(&mut self, smovements_csv: &str
+    , bheaders: bool, bdebug: bool, bquiet: bool) -> Result<u32, MovementImportError> {
+    self.import_csv_bytes(smovements_csv.as_bytes(), bheaders, bdebug, bquiet)
   }
 
   pub fn add_transaction(&mut self, transaction: Transaction) -> Option<&mut Transaction> {
@@ -252,6 +257,48 @@ impl TransactionFactory {
     self.lsttransactions.insert(transaction.tx, transaction);
 
     self.lsttransactions.get_mut(&transaction_id)
+  }
+
+  #[allow(unused_variables)]
+  pub fn export_transactions_csv(&self, bdebug: bool, bquiet: bool) -> String {
+    let mut wtr = WriterBuilder::new().from_writer(vec![]);
+
+    for txrec in self.lsttransactions.iter() {
+      match wtr.serialize(txrec.1) {
+        Ok(_) => {}
+        Err(e) => {
+          if ! bquiet {
+            eprintln!("Transaction CSV Export Error: '{:?}'", e)
+          }
+        }
+      } //match wtr.serialize(txrec.1)
+    } //for txrec in self.lsttransactions.iter()
+
+    let data = match wtr.into_inner() {
+      Ok(iwtr) => {
+        match String::from_utf8(iwtr) {
+          Ok(s) => s
+          , Err(e) => {
+            if ! bquiet {
+              eprintln!("Transactions CSV Export Error: '{:?}'", e);
+            }
+
+            //Return empty String
+            String::new()
+          }
+        } //match String::from_utf8(iwtr)
+      }
+      , Err(e) => {
+        if ! bquiet {
+          eprintln!("Transactions CSV Export Error: '{:?}'", e);
+        }
+
+        //Return empty String
+        String::new()
+      }
+    };  //match wtr.into_inner()
+
+    data
   }
 
 }

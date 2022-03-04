@@ -1,11 +1,19 @@
 [package]
-name = "client-accounting"
+name = "client_accounting"
+path = "src/main.rs"
 version = "0.1.0"
 authors = ["Bodo Hugo Barwich <b.barwich@hotmail.com>"]
 edition = "2018"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "client-accounting"
+path = "src/main.rs"
+
+[lib]
+name = "client_accounting"
+path = "src/lib.rs"
 
 [dependencies]
-serde = { version = "1.0.41", features = ["derive"] }
+serde = { version = "1.0.106", features = ["derive"] }
+serde_derive = "1.0.106"
 csv = "1.1"

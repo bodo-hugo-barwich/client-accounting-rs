@@ -1,10 +1,11 @@
 
+
+
 use std::io::Read;
 use std::fs::File;
 
 
-mod importer;
-//mod model;
+pub mod importer;
 
 use super::app::importer::MovementImporter;
 
@@ -98,6 +99,7 @@ impl RunClientAccounting {
           //let mut buf_reader = BufReader::new(fl);
           let ichunksize = 64; // 32768;
           let mut vchunk = vec![0; ichunksize];
+          let mut icnkcnt = 0;
           let mut irdcnt = ichunksize;
 
           while irdcnt > 0
@@ -108,7 +110,7 @@ impl RunClientAccounting {
 
                 if self._bdebug
                   && ! self._bquiet {
-                  eprintln!("chunk (sz: '{}'):\n'{:?}'\n", icnt, &vchunk[..icnt]);
+                  eprintln!("chunk [{}] (sz: '{}'):\n'{:?}'\n", icnkcnt, icnt, &vchunk[..icnt]);
                 }
 
                 let ilnend = match find_last(&vchunk[..icnt], &10) {
@@ -126,11 +128,16 @@ impl RunClientAccounting {
 
                 if self._bdebug
                   && ! self._bquiet {
-                  eprintln!("input (sz: '{}'):\n'{:?}'\n", self._vinput.len(), self._vinput);
+                  eprintln!("input [{}] (sz: '{}'):\n'{:?}'\n", icnkcnt, self._vinput.len(), self._vinput);
                 }
 
                 if let Some(_) = find_last(&self._vinput, &10) {
-                  let iimprs = self._importer.import_movements_bytes(&self._vinput);
+                  icnkcnt += 1;
+
+                  let iimprs = match icnkcnt {
+                    1 => self._importer.import_movements_bytes(&self._vinput, true)
+                    , _ => self._importer.import_movements_bytes(&self._vinput, false)
+                  };
 
                   if iimprs != 0 {
                     self._ierr = iimprs;
@@ -144,7 +151,9 @@ impl RunClientAccounting {
                 }
               }
               , Err(e) => {
-                eprintln!("Movements CSV Read Error: '{:?}'", e);
+                if ! self._bquiet {
+                  eprintln!("Movements CSV Read Error: '{:?}'", e);
+                }
 
                 self._ierr = 1;
               }
@@ -157,7 +166,10 @@ impl RunClientAccounting {
               eprintln!("input lst (sz: '{}'):\n'{:?}'\n", self._vinput.len(), self._vinput);
             }
 
-            let iimprs = self._importer.import_movements_bytes(&self._vinput);
+            let iimprs = match icnkcnt {
+              0 => self._importer.import_movements_bytes(&self._vinput, true)
+              , _ => self._importer.import_movements_bytes(&self._vinput, false)
+            };
 
             if iimprs != 0 {
                 self._ierr = iimprs;
@@ -167,7 +179,9 @@ impl RunClientAccounting {
           } //if self._vinput.len() > 0
         }
         , Err(e) => {
-          eprintln!("Movements CSV Open Error: '{:?}'", e);
+          if ! self._bquiet {
+            eprintln!("Movements CSV Open Error: '{:?}'", e);
+          }
 
           self._ierr = 1;
         }
@@ -176,7 +190,9 @@ impl RunClientAccounting {
     }
     else  // Input File was not given
     {
-      eprintln!("Movements CSV Import Error: File is missing.");
+      if ! self._bquiet {
+        eprintln!("Movements CSV Import Error: File is missing.");
+      }
 
       self._ierr = 3;
     } //if ! self._stxfile.is_empty()

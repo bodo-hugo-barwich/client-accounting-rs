@@ -1,5 +1,5 @@
 
-use serde::{Serialize, Deserialize};
+use serde::{Deserialize, Serialize};
 
 use csv::{WriterBuilder, ReaderBuilder, Trim};
 use std::collections::HashMap;
@@ -113,31 +113,44 @@ impl AccountFactory {
     icount
   }
 
-  pub fn export_csv(&self) -> String {
+  #[allow(unused_variables)]
+  pub fn export_csv(&self, bdebug: bool, bquiet: bool) -> String {
     let mut wtr = WriterBuilder::new().from_writer(vec![]);
 
     for acc in self.lstaccounts.iter() {
       match wtr.serialize(acc.1) {
         Ok(_) => {}
-        Err(e) => eprintln!("Account CSV Export Error: '{:?}'", e)
-      }
-    }
+        Err(e) => {
+          if ! bquiet {
+            eprintln!("Account CSV Export Error: '{:?}'", e)
+          }
+        }
+      } //match wtr.serialize(acc.1)
+    } //for acc in self.lstaccounts.iter()
 
     let data = match wtr.into_inner() {
       Ok(iwtr) => {
         match String::from_utf8(iwtr) {
           Ok(s) => s
           , Err(e) => {
-            eprintln!("Account CSV Export Error: '{:?}'", e);
+            if ! bquiet {
+              eprintln!("Account CSV Export Error: '{:?}'", e);
+            }
+
+            //Return empty String
             String::new()
           }
         }
       }
       , Err(e) => {
-        eprintln!("Account CSV Export Error: '{:?}'", e);
+        if ! bquiet {
+          eprintln!("Account CSV Export Error: '{:?}'", e);
+        }
+
+        //Return empty String
         String::new()
       }
-    };
+    };  //match wtr.into_inner()
 
     data
   }
