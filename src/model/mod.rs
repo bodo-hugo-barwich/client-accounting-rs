@@ -27,6 +27,9 @@ impl Account {
                     if txrec.client == self.client {
                         match mvrecord.tx_type.as_str() {
                             "deposit" => {
+                                //------------------------
+                                //Deposit Transaction
+
                                 if bdebug && !bquiet {
                                     eprintln!(
                                         "Movement Processing '{}': + '{} / {}'",
@@ -48,6 +51,9 @@ impl Account {
                                 }
                             }
                             "withdrawal" => {
+                                //------------------------
+                                //Withdrawal Transaction
+
                                 if bdebug && !bquiet {
                                     eprintln!(
                                         "Movement Processing '{}': - '{} / {}'",
@@ -55,7 +61,7 @@ impl Account {
                                     );
                                 }
 
-                                if txrec.amount as f64 <= self.available as f64 {
+                                if txrec.amount <= self.available {
                                     self.available -= txrec.amount;
                                     self.total -= txrec.amount;
 
@@ -73,7 +79,7 @@ impl Account {
                                     if !bquiet {
                                         eprintln!("Movement Processing Error: Amount '-{} / {}' is not available.", txrec.amount, self.available);
                                     }
-                                } //if txrec.amount as f64 <= self.available as f64
+                                } //if txrec.amount <= self.available
 
                                 if bdebug && !bquiet {
                                     eprintln!(
@@ -83,6 +89,9 @@ impl Account {
                                 }
                             }
                             "dispute" => {
+                                //------------------------
+                                //Dispute Request
+
                                 if txrec.status == 1 {
                                     match txrec.tx_type.as_str() {
                                         "deposit" => {
@@ -117,6 +126,9 @@ impl Account {
                                 } //if txrec.status == 1
                             }
                             "resolve" => {
+                                //------------------------
+                                //Resolve Request
+
                                 if txrec.status == -2 {
                                     match txrec.tx_type.as_str() {
                                         "deposit" => {
@@ -153,19 +165,31 @@ impl Account {
                                 } //if txrec.status == -2
                             }
                             "chargeback" => {
+                                //------------------------
+                                //Chargeback Request
+
                                 if txrec.status == -2 {
                                     match txrec.tx_type.as_str() {
                                         "deposit" => {
-                                            self.held -= txrec.amount;
-                                            self.total -= txrec.amount;
+                                            if txrec.amount <= self.total {
+                                                self.held -= txrec.amount;
+                                                self.total -= txrec.amount;
 
-                                            self.held = (self.held * 10000.0).round() / 10000.0;
-                                            self.total = (self.total * 10000.0).round() / 10000.0;
+                                                self.held = (self.held * 10000.0).round() / 10000.0;
+                                                self.total =
+                                                    (self.total * 10000.0).round() / 10000.0;
 
-                                            self.locked = true;
+                                                self.locked = true;
 
-                                            //Mark Transaction as invalid
-                                            txrec.status = -1;
+                                                //Mark Transaction as invalid
+                                                txrec.status = -1;
+                                            } else
+                                            //Unsufficiant Funds available
+                                            {
+                                                if !bquiet {
+                                                    eprintln!("Movement Processing Error: Amount '-{} / {}' is not available.", txrec.amount, self.total);
+                                                }
+                                            } //if txrec.amount <= self.total
                                         }
                                         _ => {
                                             if !bquiet {

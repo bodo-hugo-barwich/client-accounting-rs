@@ -198,7 +198,7 @@ mod dispute_tests {
         assert_eq!(otxrec5.unwrap().status, 1);
     }
 
-    /// ### Test `resolve_dispute_on_deposit()`
+    /// ### Test `resolve_dispute_on_withdrawal()`
     /// This test resolves a Dispute on a "_withdrawal_" Transaction
     /// So, 1 Account and 2 Transaction must have been created
     /// Transaction (id: '5') must be marked as processed with `status` (`1`)
@@ -242,7 +242,7 @@ mod dispute_tests {
         assert_eq!(otxrec7.unwrap().status, 1);
     }
 
-    /// ### Test `resolve_dispute_on_deposit()`
+    /// ### Test `chargeback_on_deposit()`
     /// This test runs a Chargeback of a "_deposit_" Transaction
     /// So, 1 Account and 1 Transaction must have been created
     /// Transaction (id: '5') must be marked as invalid with `status` (`-1`)
