@@ -1,9 +1,5 @@
-
-
-
 use client_accounting;
 
-
-fn main () {
+fn main() {
     client_accounting::main()
 }

@@ -118,13 +118,32 @@ impl Account {
                             }
                             "resolve" => {
                                 if txrec.status == -2 {
-                                    self.held -= txrec.amount;
-                                    self.available += txrec.amount;
+                                    match txrec.tx_type.as_str() {
+                                        "deposit" => {
+                                            self.held -= txrec.amount;
+                                            self.available += txrec.amount;
 
-                                    self.held = (self.held * 10000.0).round() / 10000.0;
+                                            self.held = (self.held * 10000.0).round() / 10000.0;
 
-                                    //Mark Transaction as accepted and processed
-                                    txrec.status = 1;
+                                            //Mark Transaction as accepted and processed
+                                            txrec.status = 1;
+                                        }
+                                        "withdrawal" => {
+                                            self.held -= txrec.amount;
+                                            self.total -= txrec.amount;
+
+                                            self.held = (self.held * 10000.0).round() / 10000.0;
+                                            self.total = (self.total * 10000.0).round() / 10000.0;
+
+                                            //Mark Transaction as accepted and processed
+                                            txrec.status = 1;
+                                        }
+                                        _ => {
+                                            if !bquiet {
+                                                eprintln!("Movement Processing Error: Movement Type '{}' on '{}': disallowed ", &mvrecord.tx_type, &txrec.tx_type);
+                                            }
+                                        }
+                                    } //match txrec.tx_type.as_str()
                                 } else
                                 //Transaction was not disputed
                                 {
@@ -135,12 +154,25 @@ impl Account {
                             }
                             "chargeback" => {
                                 if txrec.status == -2 {
-                                    self.held += txrec.amount;
-                                    self.total += txrec.amount;
-                                    self.locked = true;
+                                    match txrec.tx_type.as_str() {
+                                        "deposit" => {
+                                            self.held -= txrec.amount;
+                                            self.total -= txrec.amount;
 
-                                    //Mark Transaction as invalid
-                                    txrec.status = -1;
+                                            self.held = (self.held * 10000.0).round() / 10000.0;
+                                            self.total = (self.total * 10000.0).round() / 10000.0;
+
+                                            self.locked = true;
+
+                                            //Mark Transaction as invalid
+                                            txrec.status = -1;
+                                        }
+                                        _ => {
+                                            if !bquiet {
+                                                eprintln!("Movement Processing Error: Movement Type '{}' on '{}': disallowed ", &mvrecord.tx_type, &txrec.tx_type);
+                                            }
+                                        }
+                                    } //match txrec.tx_type.as_str()
                                 } else
                                 //Transaction was not disputed
                                 {
