@@ -13,7 +13,7 @@ mod dispute_fails_tests {
     /// Account (id: '11') must have `available` Funds (`1.1`)
     /// Account (id: '5') must have `available` Funds (`0.0`)
     /// Transaction (id: '9') must be marked as processed with `status` (`1`)
-    /// Transaction (id: '3') must be marked as processed with `status` (`-1`)
+    /// Transaction (id: '3') must be marked as invalid with `status` (`-1`)
     #[test]
     fn dispute_on_foreign_deposit() {
         //-------------------------------------
@@ -56,7 +56,55 @@ mod dispute_fails_tests {
         assert_eq!(otxrec9.unwrap().status, 1);
     }
 
-    /// ### Test `dispute_on_foreign_deposit()`
+    /// ### Test `dispute_on_failed_transaction()`
+    /// This test creates an Account from a "_deposit_" Transaction
+    /// and produces a "_withdrawal_" Transaction
+    /// So, 1 Account and 2 Transaction must have been created
+    /// Transaction (id: '5') fails
+    /// Transaction (id: '5') is disputed and fails
+    /// Account (id: '11') must have `available` Funds (`1.1`)
+    /// Transaction (id: '9') must be marked as processed with `status` (`1`)
+    /// Transaction (id: '3') must be marked as invalid with `status` (`-1`)
+    #[test]
+    fn dispute_on_failed_transaction() {
+        //-------------------------------------
+        //Test Dispute on foreign Deposit fails
+
+        let mut imp = super::MovementImporter::new();
+
+        imp.set_debug(true);
+
+        assert_eq!(
+            imp.import_movements_str(
+                &"type, client, tx, amount\ndeposit,11,9,1.1\nwithdrawal,11,3,2.2\ndispute,11,3,\n",
+                true
+            ),
+            0
+        );
+
+        let saccounts = imp.export_accounts_str();
+        let stransactions = imp.export_transactions_str();
+
+        println!("{}", saccounts.as_str());
+        println!("{}", stransactions.as_str());
+
+        let accfact = AccountFactory::from_str(saccounts.as_str(), true, true, false);
+        let oaccrec11 = accfact.lstaccounts.get(&11);
+
+        assert!(oaccrec11.is_some());
+        assert_eq!(oaccrec11.unwrap().available, 1.1);
+
+        let txfact = TransactionFactory::from_str(stransactions.as_str(), true, true, false);
+        let otxrec3 = txfact.lsttransactions.get(&3);
+        let otxrec9 = txfact.lsttransactions.get(&9);
+
+        assert!(otxrec3.is_some());
+        assert!(otxrec9.is_some());
+        assert_eq!(otxrec3.unwrap().status, -1);
+        assert_eq!(otxrec9.unwrap().status, 1);
+    }
+
+    /// ### Test `chargeback_non_disputed_transaction()`
     /// This test creates an Account from a "_deposit_" Transaction
     /// and produces a "_withdrawal_" Transaction
     /// So, 1 Account and 2 Transaction must have been created
