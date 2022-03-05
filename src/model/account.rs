@@ -50,38 +50,34 @@ impl AccountFactory {
             lstaccounts: HashMap::new(),
         };
 
-        //accounting._init();
-
         //Return the New AccountFactory Object
         factory
     }
 
-    pub fn from_str(saccounts_csv: &str) -> AccountFactory {
+    pub fn from_str(
+        saccounts_csv: &str,
+        bheaders: bool,
+        bdebug: bool,
+        bquiet: bool,
+    ) -> AccountFactory {
         let mut factory = AccountFactory {
             lstaccounts: HashMap::new(),
         };
-        let mut rdr = ReaderBuilder::new()
-            .trim(Trim::All)
-            .from_reader(saccounts_csv.as_bytes());
-        let mut iter = rdr.deserialize();
-
-        while let Some(result) = iter.next() {
-            match result {
-                Ok(r) => {
-                    let record: Account = r;
-
-                    factory.lstaccounts.insert(record.client, record);
-                }
-                Err(e) => eprintln!("Account CSV Parse Error: '{:?}'", e),
-            }
-        }
+        factory.import_csv(saccounts_csv, bheaders, bdebug, bquiet);
 
         factory
     }
 
-    pub fn import_csv(&mut self, saccounts_csv: &str) -> u32 {
+    #[allow(unused_variables)]
+    pub fn import_csv(
+        &mut self,
+        saccounts_csv: &str,
+        bheaders: bool,
+        bdebug: bool,
+        bquiet: bool,
+    ) -> u32 {
         let mut rdr = ReaderBuilder::new()
-            .has_headers(false)
+            .has_headers(bheaders)
             .trim(Trim::All)
             .from_reader(saccounts_csv.as_bytes());
         let mut iter = rdr.deserialize();
@@ -96,9 +92,13 @@ impl AccountFactory {
 
                     icount += 1;
                 }
-                Err(e) => eprintln!("Account CSV Parse Error: '{:?}'", e),
-            }
-        }
+                Err(e) => {
+                    if !bquiet {
+                        eprintln!("Account CSV Parse Error: '{:?}'", e);
+                    }
+                }
+            } //match result
+        } //while let Some(result) = iter.next()
 
         icount
     }

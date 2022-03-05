@@ -1,7 +1,3 @@
-//mod app;
-
-//extern crate client_accounting;
-
 use client_accounting::app::importer::MovementImporter;
 
 #[cfg(test)]
@@ -285,5 +281,47 @@ mod dispute_tests {
 
         assert!(otxrec5.is_some());
         assert_eq!(otxrec5.unwrap().status, -1);
+    }
+}
+
+#[cfg(test)]
+mod precision_tests {
+    use client_accounting::model::transaction::TransactionFactory;
+
+    /// ### Test `decimal_precision()`
+    /// This test creates an Account from a "_deposit_" Transaction
+    /// Then it produces 3 "_withdrawal_" Transactions
+    /// So, 1 Account and 4 Transaction must have been created
+    /// The 4 Transaction must be marked as processed with `status` (`1`)
+    #[test]
+    fn decimal_precision() {
+        //-------------------------------------
+        //Test Calculation Precision
+
+        let mut imp = super::MovementImporter::new();
+
+        imp.set_debug(true);
+
+        assert_eq!(
+            imp.import_movements_str(&"type, client, tx, amount\ndeposit,11,3,1.1\nwithdrawal,11,5,0.30004\nwithdrawal,11,7,0.50005\nwithdrawal,11,9,0.29994\n", true),
+            0
+        );
+
+        let saccounts = imp.export_accounts_str();
+        let stransactions = imp.export_transactions_str();
+
+        println!("{}", saccounts.as_str());
+        println!("{}", stransactions.as_str());
+
+        assert_eq!(
+            saccounts.as_str(),
+            "client,available,held,total,locked\n11,0.0,0.0,0.0,false\n"
+        );
+
+        let txfact = TransactionFactory::from_str(stransactions.as_str(), true, true, false);
+        let otxrec9 = txfact.lsttransactions.get(&9);
+
+        assert!(otxrec9.is_some());
+        assert_eq!(otxrec9.unwrap().status, 1);
     }
 }

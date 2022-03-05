@@ -283,7 +283,7 @@ impl TransactionFactory {
         } //while let Some(result) = iter.next()
 
         if bdebug && !bquiet {
-            eprintln!("Transactions CSV Import Count: '{}'", icount);
+            eprintln!("Movements CSV Import Count: '{}'", icount);
         }
 
         if ierr == 0 {
