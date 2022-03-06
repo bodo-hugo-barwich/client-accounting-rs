@@ -32,15 +32,15 @@ __
 {method} + set_debug(bdebug: bool)
 {method} - process_movements()
 {method} + import_movements_bytes
-      (vmovements_bytes: &[u8], bheaders: bool) -> i32
+  (vmovements_bytes: &[u8], bheaders: bool) -> i32
 {method} + import_movements_str
-      (smovements_str: &str, bheaders: bool) -> i32
+  (smovements_str: &str, bheaders: bool) -> i32
 .. Consultation Methods ..
 {method} + export_accounts_str() -> String
 {method} + export_transactions_str() -> String
-{method} + is_quiet(&self) -> bool
-{method} + is_debug(&self) -> bool
-{method} + get_error_code(&self) -> i32
+{method} + is_quiet() -> bool
+{method} + is_debug() -> bool
+{method} + get_error_code() -> i32
 }
 }
 
@@ -61,8 +61,8 @@ class Account {
 __
 .. Administration Methods ..
 {method} + process_movement
-    (mvrecord: &mut Movement, mut otxrecord: Option<&mut Transaction>
-    , bdebug: bool, bquiet: bool)
+  (mvrecord: &mut Movement, mut otxrecord: Option<&mut Transaction>
+  , bdebug: bool, bquiet: bool)
 }
 
 class AccountFactory {
@@ -78,7 +78,7 @@ __
 {method} + create_account(client_id: &u16) -> Option<&mut Account>
 {method} + add_account(account: Account) -> Option<&mut Account>
 {method} + import_csv(saccounts_csv: &str
-    , bheaders: bool, bdebug: bool, bquiet: bool) -> u32
+  , bheaders: bool, bdebug: bool, bquiet: bool) -> u32
 .. Consultation Methods ..
 {method} + export_csv(bdebug: bool, bquiet: bool) -> String
 }
@@ -167,10 +167,8 @@ MovementImportError -right[hidden]- TransactionImportError
 
 TransactionFactory “1" *-up- "n" Transaction : creates
 TransactionFactory “1" *-up- "n" Movement : creates
-
-
+}
 }
 
 
-}
 @enduml
