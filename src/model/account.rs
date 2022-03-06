@@ -68,6 +68,32 @@ impl AccountFactory {
         factory
     }
 
+    /*----------------------------------------------------------------------------
+     *Administration Methods
+     */
+
+    pub fn create_account(&mut self, client_id: &u16) -> Option<&mut Account> {
+        let account = Account {
+            client: *client_id,
+            available: 0.0,
+            held: 0.0,
+            total: 0.0,
+            locked: false,
+        };
+
+        self.lstaccounts.insert(account.client, account);
+
+        self.lstaccounts.get_mut(client_id)
+    }
+
+    pub fn add_account(&mut self, account: Account) -> Option<&mut Account> {
+        let client_id = account.client;
+
+        self.lstaccounts.insert(account.client, account);
+
+        self.lstaccounts.get_mut(&client_id)
+    }
+
     #[allow(unused_variables)]
     pub fn import_csv(
         &mut self,
@@ -102,6 +128,10 @@ impl AccountFactory {
 
         icount
     }
+
+    /*----------------------------------------------------------------------------
+     * Consultation Methods
+     */
 
     #[allow(unused_variables)]
     pub fn export_csv(&self, bdebug: bool, bquiet: bool) -> String {
@@ -143,27 +173,5 @@ impl AccountFactory {
         }; //match wtr.into_inner()
 
         data
-    }
-
-    pub fn create_account(&mut self, client_id: &u16) -> Option<&mut Account> {
-        let account = Account {
-            client: *client_id,
-            available: 0.0,
-            held: 0.0,
-            total: 0.0,
-            locked: false,
-        };
-
-        self.lstaccounts.insert(account.client, account);
-
-        self.lstaccounts.get_mut(client_id)
-    }
-
-    pub fn add_account(&mut self, account: Account) -> Option<&mut Account> {
-        let client_id = account.client;
-
-        self.lstaccounts.insert(account.client, account);
-
-        self.lstaccounts.get_mut(&client_id)
     }
 }

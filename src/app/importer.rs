@@ -155,6 +155,10 @@ impl MovementImporter {
         self.import_movements_bytes(smovements_str.as_bytes(), bheaders)
     }
 
+    /*----------------------------------------------------------------------------
+     * Consultation Methods
+     */
+
     pub fn export_accounts_str(&self) -> String {
         self._accfact.export_csv(self._bdebug, self._bquiet)
     }
@@ -163,11 +167,6 @@ impl MovementImporter {
         self._txfact
             .export_transactions_csv(self._bdebug, self._bquiet)
     }
-
-    /*----------------------------------------------------------------------------
-     * Consultation Methods
-     */
-
     pub fn is_quiet(&self) -> bool {
         self._bquiet
     }

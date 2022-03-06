@@ -1,0 +1,176 @@
+@startuml
+set namespaceSeparator ::
+package "Crate 'client_accounting'" <<Folder>> {
+
+package "Module 'app'" <<Folder>> {
+class RunClientAccounting {
+__
+.. Constructors ..
+{method}{static} + new() -> RunClientAccounting
+.. Administration Methods ..
+{method} + set_transaction_filename(sfilename: &str)
+{method} + set_import(bimport: bool)
+{method} + set_quiet(bquiet: bool)
+{method} + set_debug(bdebug: bool)
+{method} - import_from_file()
+{method} - export_accounts() -> i32
+{method} + do_run() -> i32
+.. Consultation Methods ..
+{method} + is_import() -> bool
+{method} + is_quiet() -> bool
+{method} + is_debug() -> bool
+{method} + get_error_code() -> i32
+}
+
+package "Module 'app::importer'" <<Folder>> {
+class MovementImporter {
+__
+.. Constructors ..
+{method}{static} + new() -> MovementImporter
+.. Administration Methods ..
+{method} + set_quiet(bquiet: bool)
+{method} + set_debug(bdebug: bool)
+{method} - process_movements()
+{method} + import_movements_bytes
+      (vmovements_bytes: &[u8], bheaders: bool) -> i32
+{method} + import_movements_str
+      (smovements_str: &str, bheaders: bool) -> i32
+.. Consultation Methods ..
+{method} + export_accounts_str() -> String
+{method} + export_transactions_str() -> String
+{method} + is_quiet(&self) -> bool
+{method} + is_debug(&self) -> bool
+{method} + get_error_code(&self) -> i32
+}
+}
+
+RunClientAccounting “1" *-right- "1" MovementImporter : uses
+}
+
+
+package "Module 'model'" <<Folder>> {
+
+package "Module 'model::account'" <<Folder>> {
+
+class Account {
++ client: u16
++ available: f64
++ held: f64
++ total: f64
++ locked: bool
+__
+.. Administration Methods ..
+{method} + process_movement
+    (mvrecord: &mut Movement, mut otxrecord: Option<&mut Transaction>
+    , bdebug: bool, bquiet: bool)
+}
+
+class AccountFactory {
++ lstaccounts: HashMap<u16, Account>
+__
+.. Constructors ..
+{method}{static} + new() -> AccountFactory
+{method}{static} + from_str
+{static}  (saccounts_csv: &str
+{static}  , bheaders: bool, bdebug: bool, bquiet: bool) ->
+{static}  AccountFactory
+.. Administration Methods ..
+{method} + create_account(client_id: &u16) -> Option<&mut Account>
+{method} + add_account(account: Account) -> Option<&mut Account>
+{method} + import_csv(saccounts_csv: &str
+    , bheaders: bool, bdebug: bool, bquiet: bool) -> u32
+.. Consultation Methods ..
+{method} + export_csv(bdebug: bool, bquiet: bool) -> String
+}
+
+MovementImporter “1" *-- "1" AccountFactory : uses
+AccountFactory “1" *-up- "n" Account : creates
+}
+
+package "Module 'model::transaction'" <<Folder>> {
+
+class Movement {
++ tx_type: String
++ client: u16
++ tx: u32
++ amount: Option<f64>
+__
+.. Administration Methods ..
+{method} + build_transaction() -> Option<Transaction>
+}
+note right of Movement::tx_type
+  serde(rename = "type")
+end note
+RunClientAccounting -down[hidden]- Movement
+
+class Transaction << (S,#FF7700) >> {
++ tx_type: String
++ client: u16
++ tx: u32
++ amount: f64
++ status: i8
+}
+hide Transaction methods
+note right of Transaction::tx_type
+  serde(rename = "type")
+end note
+Movement -right-> Transaction : creates
+
+class TransactionFactory {
++ vmovements: Vec<Movement>
++ lsttransactions: HashMap<u32, Transaction>
+__
+.. Constructors ..
+{method}{static} + new() -> TransactionFactory
+{method}{static} + from_str(stransactions_csv: &str
+{static}  , bheaders: bool, bdebug: bool, bquiet: bool) ->
+{static}  TransactionFactory
+{method}{static} + from_csv_str(smovements_csv: &str
+{static}  , bheaders: bool, bdebug: bool, bquiet: bool) ->
+{static}  TransactionFactory
+.. Administration Methods ..
+{method} + add_transaction(transaction: Transaction) ->
+  Option<&mut Transaction>
+{method} + import_csv_bytes(vmovements_csv: &[u8]
+  , bheaders: bool, bdebug: bool, bquiet: bool) ->
+  Result<u32, MovementImportError>
+{method} + import_csv_str(smovements_csv: &str
+  , bheaders: bool, bdebug: bool, bquiet: bool) ->
+  Result<u32, MovementImportError>
+{method} + import_transactions_str(stransactions_csv: &str
+  , bheaders: bool, bdebug: bool, bquiet: bool) ->
+  Result<u32, TransactionImportError>
+.. Consultation Methods ..
+{method} + export_transactions_csv(bdebug: bool, bquiet: bool) -> String
+}
+MovementImporter “1" *-- "1" TransactionFactory : uses
+Movement -down[hidden]- TransactionFactory
+
+class MovementImportError << (S,#FF7700) >> {
++ ok_count: u32
++ lines: Vec<u32>
++ message: String
++ code: i8
+}
+hide MovementImportError methods
+TransactionFactory -down- MovementImportError : emits >
+
+class TransactionImportError << (S,#FF7700) >> {
++ ok_count: u32
++ lines: Vec<u32>
++ message: String
++ code: i8
+}
+hide TransactionImportError methods
+TransactionFactory - TransactionImportError : emits >
+MovementImportError -right[hidden]- TransactionImportError
+
+TransactionFactory “1" *-up- "n" Transaction : creates
+TransactionFactory “1" *-up- "n" Movement : creates
+
+
+}
+
+
+}
+@enduml

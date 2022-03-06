@@ -234,6 +234,14 @@ impl TransactionFactory {
      * Administration Methods
      */
 
+    pub fn add_transaction(&mut self, transaction: Transaction) -> Option<&mut Transaction> {
+        let transaction_id = transaction.tx;
+
+        self.lsttransactions.insert(transaction.tx, transaction);
+
+        self.lsttransactions.get_mut(&transaction_id)
+    }
+
     pub fn import_csv_bytes(
         &mut self,
         vmovements_csv: &[u8],
@@ -303,14 +311,6 @@ impl TransactionFactory {
         self.import_csv_bytes(smovements_csv.as_bytes(), bheaders, bdebug, bquiet)
     }
 
-    pub fn add_transaction(&mut self, transaction: Transaction) -> Option<&mut Transaction> {
-        let transaction_id = transaction.tx;
-
-        self.lsttransactions.insert(transaction.tx, transaction);
-
-        self.lsttransactions.get_mut(&transaction_id)
-    }
-
     pub fn import_transactions_str(
         &mut self,
         stransactions_csv: &str,
@@ -369,6 +369,10 @@ impl TransactionFactory {
             })
         }
     }
+
+    /*----------------------------------------------------------------------------
+     * Consultation Methods
+     */
 
     #[allow(unused_variables)]
     pub fn export_transactions_csv(&self, bdebug: bool, bquiet: bool) -> String {
