@@ -13,13 +13,13 @@ the current state of Client Accounts.
 
 ## Application Design
 
-The [_Factory Design_](https://en.wikipedia.org/wiki/Factory_method_pattern) which converts
-CSV text into `Account`, `Movement` or `Transaction` object was a powerful tool to
-improve maintainability and testability of the application.\
-To verify the correct state of the objects the CSV test had to be converted back and forth
-into corresponding objects. This enables also the serializability of the internal state of
+The [_Factory Design_](https://en.wikipedia.org/wiki/Factory_method_pattern) which
+was used to create structures that convert `CSV` text into `Account`, `Movement` or `Transaction`
+objects was a powerful tool to improve maintainability and testability of the application.\
+To verify the correct state of the objects the `CSV` text had to be converted back and forth
+into the corresponding objects. This enables also the serializability of the internal state of
 the **Accounts** and **Transaction History** which is important for the **Data Consistency**
-as described below.\
+as described under [**Persistency**](#persistency) below.\
 The [**Crate Class Diagram**](docs/client-accounting_class-diagram.svg) looks like this:
 ![**Crate Class Diagram**](docs/client-accounting_class-diagram.svg)
 
