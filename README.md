@@ -1,3 +1,5 @@
+[![Automated Tests](https://github.com/bodo-hugo-barwich/client-accounting-rs/actions/workflows/testing.yml/badge.svg)](https://github.com/bodo-hugo-barwich/client-accounting-rs/actions/workflows/testing.yml)
+
 # Name
 
 Client-Accounting
