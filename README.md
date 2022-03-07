@@ -60,6 +60,7 @@ The _Dispute_ the _Deposit_ of `1.1` after the _Withdrawal_ of `0.5` produces a 
 and in consequence the a possible _Chargeback_ request cannot be satisfied. This is because the
 _Dispute_ arrived **after** the _Withdrawal_. If the _Dispute_ arrived before the _Withdrawal_
 then the _Withdrawal_ Transaction would have failed but a _Chargeback_ request would have been possible.
+See more details on this changed procedure at: [Place _Deposit_ Transaction Funds on "held"](https://github.com/bodo-hugo-barwich/client-accounting-rs/issues/1)
 
 * The **Transaction History** per Account is also stateful. They will rendered invalid according
 to the chronological order that they arrive and the persistent state of the
