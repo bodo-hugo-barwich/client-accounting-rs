@@ -1,5 +1,6 @@
 #Exclude Project Files
 .project
+*.adoc
 Cargo.lock
 textsanitizer_rs
 textsanitizer_rs/*
