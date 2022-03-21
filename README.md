@@ -71,10 +71,14 @@ that they arrive.
 ### Multithreading
 
 * A **massive amount** of Transactions to process like perhaps millions of them can make
-simultaneous processing a necessity. But the exclusive **Acount Lock** will limit the amount of Transactions that can be processed per second. This will then require a **horizontal scaling** of Client Accounting Processing nodes.
-as documented at [Micro Service Architeture](https://github.com/bodo-hugo-barwich/client-accounting-rs/issues/2)
+simultaneous processing a necessity.\ 
+A possible multithreading architecture is discussed at:
+[Multithreading Architecture with Actors](https://github.com/bodo-hugo-barwich/client-accounting-rs/issues/3)\
+Eventually the exclusive **Acount Lock** will limit the amount of Transactions that can be processed per second. 
 * To conserve **Account Integrity** the Transactions need to be processed in a FIFO manner per Account.
 To avoid **Data Races** the Accounts need to be exclusively owned per thread that means
 that they need to be locked globally. \
 The **Apache Kafka** Messaging Service can provide the global synchronization of the **Transaction History**
-where dedicated threads can pick messages according to their assigned Account.
+where dedicated threads can pick messages according to their assigned Account.\
+Alternatively a **horizontal scaling** of Client Accounting Processing nodes can be achieved with a **Micro Service Architecture**.\
+As documented at [Micro Service Architeture](https://github.com/bodo-hugo-barwich/client-accounting-rs/issues/2)
